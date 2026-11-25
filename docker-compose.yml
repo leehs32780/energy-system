@@ -1,0 +1,13 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-energy}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - energy_pgdata:/var/lib/postgresql/data
+volumes:
+  energy_pgdata:
