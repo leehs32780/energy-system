@@ -9,4 +9,4 @@ export function verify(input:VerificationInput) {
   const savings=calculateSavings(input.baseline,input.actual,input.adjustment);
   return {...savings,cost:calculateCost(input.energy,savings.quantity),carbon:calculateCarbon(input.energy,savings.quantity), status:'추가 관찰 필요' as const,version:'1',calculatedAt:new Date().toISOString()};
 }
-export type Verification=VerificationInput & ReturnType<typeof verify> & {id:string;siteId:string};
+export type Verification=VerificationInput & ReturnType<typeof verify> & {id:string;siteId:string;baselineStart?:string;baselineEnd?:string;actualStart?:string;actualEnd?:string;dataSource?:string};

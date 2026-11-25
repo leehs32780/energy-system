@@ -8,7 +8,7 @@ import type { Verification } from '@/features/verifications/model';
 
 export type Audit = { id:string; at:string; actor:string; action:string; entityId:string; before:unknown; after:unknown };
 export type DemoData = { anomalies:Anomaly[]; measures:Measure[]; audits:Audit[]; verifications:Verification[] };
-const directory = path.join(process.cwd(), '.data');
+const directory = process.env.EMS_DEMO_DATA_DIR || path.join(process.cwd(), '.data');
 const filename = path.join(directory, 'demo.json');
 let queue: Promise<unknown> = Promise.resolve();
 async function load(): Promise<DemoData> {
