@@ -20,6 +20,7 @@ async function main(){
    await prisma.meterReading.createMany({data:rows,skipDuplicates:true});
   }
  }
+ await prisma.meter.upsert({where:{id:'33333333-3333-4333-8333-000000000010'},update:{},create:{id:'33333333-3333-4333-8333-000000000010',siteId:demoSites[0].id,name:'평택 제1공장 일별 전기 가져오기',energy:'electricity',unit:'kWh',intervalMinutes:1440}});
  console.log('데모 조직, 사업장, 계량기와 일별 데이터를 준비했습니다.');
 }
 main().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>prisma.$disconnect());
