@@ -1,6 +1,7 @@
 import 'server-only';
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
+import { currentAccount } from '@/server/account/account';
 
 export type Role = 'admin'|'energy'|'facility'|'esg'|'executive'|'auditor';
 export const roles:Record<Role,{label:string;sites:string[]|'all';write:boolean}> = {
@@ -14,6 +15,7 @@ const secret=globalSecrets.emsDemoSecret ??= randomBytes(32);
 const sign=(role:string)=>createHmac('sha256',secret).update(role).digest('hex');
 export function encodeRole(role:Role) { return `${role}.${sign(role)}`; }
 export async function currentRole():Promise<Role|null> {
+  if(!await currentAccount()) return null;
   if(process.env.NODE_ENV==='production' && process.env.ENABLE_DEMO_AUTH!=='true') return null;
   const value=(await cookies()).get('ems-demo')?.value;
   if(!value) return null;
