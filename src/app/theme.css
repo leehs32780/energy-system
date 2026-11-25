@@ -1,0 +1,71 @@
+/* Calm slate and indigo surfaces keep dense operational data easy to scan. */
+:root {
+  --canvas: #e9eef5;
+  --surface: #fdfefe;
+  --line: #dce4ef;
+  --nav: #1f304d;
+  --nav-text: #c3d0e1;
+  --accent: #365eb9;
+}
+
+body { background: var(--canvas); }
+.workspace { background: linear-gradient(180deg, #e6edf6 0, var(--canvas) 360px); }
+.sidebar {
+  background: linear-gradient(180deg, #263b5c 0%, var(--nav) 58%, #1b2c46 100%);
+  border-right-color: #30435f;
+  color: #f3f6fc;
+}
+.brand small { color: #a6bad4; }
+.brand-icon { background: #6b91ec; color: #10244a; }
+.org { background: rgba(255,255,255,.055); border-color: rgba(210,224,244,.16); }
+.org small, .org > svg { color: #b2c3da; }
+.org-icon { background: rgba(193,211,240,.15); color: #ccdcf4; }
+.nav-caption { color: #a4b7d1; }
+.nav { color: var(--nav-text); transition: background-color .15s, color .15s; }
+.nav:hover { background: rgba(222,234,255,.1); color: white; }
+.nav.active { background: #dce8ff; color: #234b9f; }
+.nav-count { background: rgba(219,231,255,.17); color: #e2eaff; }
+.nav.active .nav-count { background: #c5d7fa; color: #264e9e; }
+.side-bottom { background: rgba(225,235,250,.08); color: #d5e1ef; }
+.side-bottom div span, .side-bottom p { color: #b5c6da; }
+.topbar { background: #f5f8fc; border-color: #d5e0ed; }
+.breadcrumb { color: #6a7d96; }
+.breadcrumb strong { color: #334a68; }
+.page-heading p, .card-head p { color: #61748d; }
+.context { color: #657991; }
+.kpi, .card {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: 0 4px 16px rgba(32,54,85,.06);
+}
+.kpi { border-top: 3px solid #a9bce1; }
+.kpi:nth-child(2) { border-top-color: #9ab9bb; }
+.kpi:nth-child(3) { border-top-color: #9bbba9; }
+.kpi:nth-child(4) { border-top-color: #d9bd91; }
+.kpi p, .chart-title span, .chart-foot, .data-tile small, .note { color: #667991; }
+.kpi-icon { background: #e7eefb; color: #4164b5; }
+.filters label, .filters select { background: #f8fafd; }
+.filters label { border-color: #cdd9e8; }
+.insight, .detail, .data-tile { background: #eef3f9; }
+.text-button { color: #365da8; }
+.alert-row:hover { background: #f2f6fc; }
+.account-actions button, .secondary { background: #f9fbfe; border-color: #cfdae8; color: #405875; }
+.account-actions button:hover, .secondary:hover { background: #eaf0f9; }
+.workflow-label select, .workflow-label input,
+.login-card input, .account-dialog input { background: #f5f8fc; border-color: #cad7e7; }
+.login-screen {
+  background: radial-gradient(ellipse at 20% 15%, #3b567b 0%, transparent 48%),
+              linear-gradient(135deg, #253b5a, #1b2c46 70%, #213750);
+}
+.login-card { background: #f8fafd; border-color: #dbe5f1; box-shadow: 0 24px 65px rgba(8,19,38,.28); }
+.login-brand small, .login-note { color: #71849d; }
+.login-intro p, .account-hint, .dialog-head p { color: #61748b; }
+.account-dialog { background: #f9fbfe; }
+.account-identity { background: #eaf1fa; }
+footer { color: #71839a; }
+
+@media (max-width: 700px) {
+  .sidebar { border-bottom: 1px solid #30435f; }
+  .nav { min-height: 42px; }
+  .login-card { padding: 28px 24px; }
+}

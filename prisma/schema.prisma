@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  timezone  String   @default("Asia/Seoul")
+  currency  String   @default("KRW")
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  sites     Site[]
+  users     User[]
+}
+
+model User {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  role           String
+  assignments    SiteAssignment[]
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model SiteAssignment {
+  userId String @db.Uuid
+  siteId String @db.Uuid
+  user   User @relation(fields: [userId], references: [id])
+  site   Site @relation(fields: [siteId], references: [id])
+  @@id([userId, siteId])
+}
+
+model Site {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  area           Decimal? @db.Decimal(16, 3)
+  buildings      Building[]
+  meters         Meter[]
+  measures       SavingMeasure[]
+  assignments    SiteAssignment[]
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+  @@index([organizationId])
+}
+
+model Building {
+  id        String @id @default(uuid()) @db.Uuid
+  siteId    String @db.Uuid
+  site      Site @relation(fields: [siteId], references: [id])
+  name      String
+  area      Decimal? @db.Decimal(16, 3)
+  assets    Asset[]
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  @@index([siteId])
+}
+
+model Asset {
+  id         String @id @default(uuid()) @db.Uuid
+  buildingId String @db.Uuid
+  building   Building @relation(fields: [buildingId], references: [id])
+  name       String
+  type       String
+  meters     Meter[]
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+  @@index([buildingId])
+}
+
+model Meter {
+  id              String @id @default(uuid()) @db.Uuid
+  siteId          String @db.Uuid
+  site            Site @relation(fields: [siteId], references: [id])
+  assetId         String? @db.Uuid
+  asset           Asset? @relation(fields: [assetId], references: [id])
+  name            String
+  energy          String
+  unit            String
+  intervalMinutes Int
+  readings        MeterReading[]
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
+  @@index([siteId])
+}
+
+model MeterReading {
+  id              String @id @default(uuid()) @db.Uuid
+  meterId         String @db.Uuid
+  meter           Meter @relation(fields: [meterId], references: [id])
+  observedAt      DateTime @db.Timestamptz(3)
+  intervalMinutes Int
+  value           Decimal @db.Decimal(20, 6)
+  unit            String
+  readingType     String
+  quality         String @default("normal")
+  source          String
+  ingestedAt      DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([meterId, observedAt, readingType])
+  @@index([meterId, observedAt])
+}
+
+model Tariff {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  energy         String
+  unit           String
+  price          Decimal @db.Decimal(20, 6)
+  validFrom      DateTime @db.Timestamptz(3)
+  validTo        DateTime? @db.Timestamptz(3)
+  source         String
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  @@index([organizationId, energy, validFrom])
+}
+
+model EmissionFactor {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  energy         String
+  unit           String
+  factor         Decimal @db.Decimal(20, 9)
+  source         String
+  version        String
+  validFrom      DateTime @db.Timestamptz(3)
+  validTo        DateTime? @db.Timestamptz(3)
+  @@index([organizationId, energy, validFrom])
+}
+
+model AnomalyEvent {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  siteId         String @db.Uuid
+  meterId        String? @db.Uuid
+  title          String
+  status         String @default("신규")
+  severity       String
+  evidence       Json
+  observedAt     DateTime @db.Timestamptz(3)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+  @@index([organizationId, siteId, observedAt])
+}
+
+model SavingMeasure {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  siteId         String @db.Uuid
+  site           Site @relation(fields: [siteId], references: [id])
+  title          String
+  owner          String
+  status         String @default("발굴")
+  energy         String
+  expected       Decimal @db.Decimal(20, 2)
+  investment     Decimal @db.Decimal(20, 2) @default(0)
+  description    String @default("")
+  verifications  Verification[]
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+  @@index([organizationId, siteId, status])
+}
+
+model Verification {
+  id           String @id @default(uuid()) @db.Uuid
+  measureId    String @db.Uuid
+  measure      SavingMeasure @relation(fields: [measureId], references: [id])
+  baseline     Decimal @db.Decimal(20, 6)
+  actual       Decimal @db.Decimal(20, 6)
+  adjustment   Decimal @db.Decimal(20, 6) @default(0)
+  method       String
+  status       String
+  notes        String
+  calculatedAt DateTime @default(now()) @db.Timestamptz(3)
+  version      String @default("1")
+  @@index([measureId, calculatedAt])
+}
+
+model AuditLog {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  actorId        String @db.Uuid
+  action         String
+  entityType     String
+  entityId       String
+  before         Json?
+  after          Json?
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  @@index([organizationId, createdAt])
+}
