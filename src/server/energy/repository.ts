@@ -4,18 +4,24 @@ import { demoReadings, sites, type Energy, type Reading, type Site } from '@/fea
 import { canAccess, type Role } from '@/server/demo/auth';
 import type { DailyImportRow } from '@/features/energy/import';
 import { recentRange } from '@/shared/lib/dates';
+import { createHash } from 'node:crypto';
 
 const seededSiteIds:Record<string,string>={pyeongtaek:'22222222-2222-4222-8222-222222222221',incheon:'22222222-2222-4222-8222-222222222222',seoul:'22222222-2222-4222-8222-222222222223'};
 const globalDb=globalThis as typeof globalThis & {emsPrisma?:PrismaClient};
 function db(){return globalDb.emsPrisma ??= new PrismaClient();}
-export async function importPyeongtaekElectricity(rows:DailyImportRow[]){
+export async function importPyeongtaekElectricity(rows:DailyImportRow[], csv:string, actor:string){
  if(!process.env.DATABASE_URL)throw new Error('DATABASE_REQUIRED');
  // Imported data uses a separate meter so simulated seed records never suppress real uploads.
  const meterId='33333333-3333-4333-8333-000000000010';
  const meter=await db().meter.findUnique({where:{id:meterId},select:{siteId:true,energy:true,unit:true,intervalMinutes:true}});
  if(!meter||meter.siteId!==seededSiteIds.pyeongtaek||meter.energy!=='electricity'||meter.unit!=='kWh'||meter.intervalMinutes!==1440)throw new Error('METER_REQUIRED');
- const result=await db().meterReading.createMany({data:rows.map(row=>({meterId,observedAt:new Date(`${row.date}T00:00:00.000Z`),intervalMinutes:1440,value:row.value,unit:'kWh',readingType:'interval',quality:'normal',source:'csv-import'})),skipDuplicates:true});
- return {imported:result.count,duplicates:rows.length-result.count};
+ return db().$transaction(async tx=>{
+  const batch=await tx.importBatch.create({data:{meterId,sha256:createHash('sha256').update(csv,'utf8').digest('hex'),actor,validRows:rows.length,importedRows:0,duplicateRows:0}});
+  const result=await tx.meterReading.createMany({data:rows.map(row=>({meterId,observedAt:new Date(`${row.date}T00:00:00.000Z`),intervalMinutes:1440,value:row.value,unit:'kWh',readingType:'interval',quality:'normal',source:'csv-import',importBatchId:batch.id})),skipDuplicates:true});
+  const duplicates=rows.length-result.count;
+  await tx.importBatch.update({where:{id:batch.id},data:{importedRows:result.count,duplicateRows:duplicates}});
+  return {imported:result.count,duplicates,batchId:batch.id};
+ });
 }
 export async function readEnergy(role:Role):Promise<{readings:Reading[];sites:Site[];mode:'demo'|'database';source:'simulation'|'demo-seed'|'csv-import'}>{
  const permitted=sites.filter(site=>canAccess(role,site.id));

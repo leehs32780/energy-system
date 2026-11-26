@@ -1,6 +1,12 @@
 import {todaySeoul} from '@/shared/lib/dates';
 export type DailyImportRow={date:string;value:number};
 export type ImportIssue={line:number;message:string};
+export function dailyCoverage(dates:string[],from:string,to:string){
+ const start=Date.parse(`${from}T00:00:00Z`),end=Date.parse(`${to}T00:00:00Z`);
+ const expected=Math.floor((end-start)/86400000)+1;
+ const observed=new Set(dates.filter(date=>date>=from&&date<=to)).size;
+ return {expected,observed,missing:Math.max(0,expected-observed)};
+}
 export function parseDailyElectricityCsv(text:string,today=todaySeoul()):{rows:DailyImportRow[];errors:ImportIssue[]}{
  const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/);const errors:ImportIssue[]=[];const rows:DailyImportRow[]=[];const dates=new Set<string>();
  if(lines[0]?.trim().toLowerCase()!=='date,value')return {rows,errors:[{line:1,message:'첫 줄은 date,value 형식이어야 합니다.'}]};

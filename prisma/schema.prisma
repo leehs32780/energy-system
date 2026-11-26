@@ -104,8 +104,23 @@ model MeterReading {
   quality         String @default("normal")
   source          String
   ingestedAt      DateTime @default(now()) @db.Timestamptz(3)
+  importBatchId   String? @db.Uuid
+  importBatch     ImportBatch? @relation(fields: [importBatchId], references: [id])
   @@unique([meterId, observedAt, readingType])
   @@index([meterId, observedAt])
+}
+
+model ImportBatch {
+  id          String @id @default(uuid()) @db.Uuid
+  meterId     String @db.Uuid
+  sha256      String
+  actor       String
+  receivedAt  DateTime @default(now()) @db.Timestamptz(3)
+  validRows   Int
+  importedRows Int
+  duplicateRows Int
+  readings    MeterReading[]
+  @@index([meterId, receivedAt])
 }
 
 model Tariff {
