@@ -2,6 +2,13 @@ import type { Reading } from '@/features/energy/model';
 import { detectDeviation } from './detection';
 import type { Anomaly } from './model';
 
+// Preserve reviewed alerts even after the latest reading advances.
+export function mergeDailyAlerts(saved:Anomaly[], generated:Anomaly[], source:string):Anomaly[]{
+ const relevant=saved.filter(event=>event.id.startsWith(`daily:${source}:`));
+ const ids=new Set(relevant.map(event=>event.id));
+ return [...relevant,...generated.filter(event=>!ids.has(event.id))];
+}
+
 // Only compares the same weekday; this does not infer overnight usage or weather effects.
 export function detectDailyElectricity(readings:Reading[],source='simulation'):Anomaly[]{
  const bySite=new Map<string,Map<string,number>>();

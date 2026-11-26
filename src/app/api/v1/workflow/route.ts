@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { canAccess, currentRole, roles, sameOrigin } from '@/server/demo/auth';
 import { mutateDemo, readDemo } from '@/server/demo/store';
 import { verificationInput, verify } from '@/features/verifications/model';
-import { detectDailyElectricity } from '@/features/anomalies/daily';
+import { detectDailyElectricity, mergeDailyAlerts } from '@/features/anomalies/daily';
 import { readEnergy } from '@/server/energy/repository';
 import { compareDailyPeriods } from '@/features/verifications/periods';
 const createSchema=z.object({action:z.literal('createMeasure'),title:z.string().trim().min(2).max(120),siteId:z.enum(['pyeongtaek','incheon','seoul']),owner:z.string().trim().min(1).max(60),expected:z.number().finite().nonnegative().max(1e12)});
@@ -16,7 +16,7 @@ const schema=z.discriminatedUnion('action',[createSchema,anomalySchema,measureSc
 export async function GET() {
   const role=await currentRole(); if(!role) return NextResponse.json({error:'데모 역할을 선택하세요.'},{status:401});
   try {const [data,energy]=await Promise.all([readDemo(),readEnergy(role)]);
-   const alerts=energy.mode==='demo'?data.anomalies.filter(x=>!x.id.startsWith('daily:')):detectDailyElectricity(energy.readings,energy.source).map(event=>({...event,status:data.anomalies.find(saved=>saved.id===event.id)?.status??event.status}));
+   const alerts=energy.mode==='demo'?data.anomalies.filter(x=>!x.id.startsWith('daily:')):mergeDailyAlerts(data.anomalies,detectDailyElectricity(energy.readings,energy.source),energy.source);
    const measures=data.measures.filter(x=>canAccess(role,x.siteId)&&(x.dataSource??'simulation')===energy.source);const ids=new Set(measures.map(x=>x.id));
    return NextResponse.json({anomalies:alerts.filter(x=>canAccess(role,x.siteId)),measures,verifications:data.verifications.filter(x=>canAccess(role,x.siteId)&&ids.has(x.measureId)&&(x.dataSource??'simulation')===energy.source),audits:role==='admin'||role==='auditor'?data.audits:[]});
   }catch(error){console.error('Workflow data unavailable',error);return NextResponse.json({error:'업무 데이터를 불러오지 못했습니다.'},{status:503});}
@@ -36,7 +36,7 @@ export async function POST(request:Request) {
         data.measures.push(item); return {result:item,entityId:item.id,before:null,after:item};
       }
       if(input.action==='updateAnomaly') {
-        if(input.id.startsWith('daily:')&&!generated)throw new Error('NOT_FOUND');if(!input.id.startsWith('daily:')&&energyData.mode!=='demo')throw new Error('NOT_FOUND');
+        if(input.id.startsWith('daily:')&&!input.id.startsWith(`daily:${energyData.source}:`))throw new Error('NOT_FOUND');if(!input.id.startsWith('daily:')&&energyData.mode!=='demo')throw new Error('NOT_FOUND');
         let item=data.anomalies.find(x=>x.id===input.id && canAccess(role,x.siteId)); if(!item&&generated&&canAccess(role,generated.siteId)){item=generated;data.anomalies.push(item);} if(!item) throw new Error('NOT_FOUND');
         const before=structuredClone(item); item.status=input.status;
         return {result:item,entityId:item.id,before,after:{...item,reason:input.reason}};
